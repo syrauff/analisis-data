@@ -332,18 +332,142 @@ with tab3:
 
 with tab4:
     st.title("📋 Pengolahan Data")
+    COLUMN_NAMES = [
+        "instant", "dteday", "season", "yr", "mnth", "hr", "holiday", "weekday",
+        "workingday", "weathersit", "temp", "atemp", "hum", "windspeed",
+        "casual", "registered", "cnt", "time_category"
+    ]
+    # Opsi untuk input yang umum
+    SEASONS_MAP_ID_TO_EN = {"Semi": "Spring", "Panas": "Summer", "Gugur": "Fall", "Dingin": "Winter"}
+    SEASONS_MAP_EN_TO_ID = {v: k for k, v in SEASONS_MAP_ID_TO_EN.items()} # For displaying existing data
+
+    MONTHS_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
+                "Agustus", "September", "Oktober", "November", "Desember"]
+    MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July",
+                "August", "September", "October", "November", "December"]
+    MONTH_MAP_ID_TO_EN = dict(zip(MONTHS_ID, MONTHS_EN))
+    MONTH_MAP_EN_TO_ID = dict(zip(MONTHS_EN, MONTHS_ID))
+
+    WEEKDAYS_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"]
+    WEEKDAYS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] # Assuming 0 is Sunday for Supabase
+    WEEKDAY_MAP_ID_TO_EN = dict(zip(WEEKDAYS_ID, WEEKDAYS_EN))
+    WEEKDAY_MAP_EN_TO_ID = dict(zip(WEEKDAYS_EN, WEEKDAYS_ID))
+
+    WEATHERSIT_MAP_ID_TO_EN = {
+        "Cerah/Sedikit Berawan": "Clear",
+        "Berkabut/Berawan": "Mist + Cloudy",
+        "Salju Ringan/Hujan Ringan": "Light Snow/Rain",
+        "Hujan Lebat/Badai Es": "Heavy Rain/Ice Pallets"
+    }
+    WEATHERSIT_MAP_EN_TO_ID = {v: k for k, v in WEATHERSIT_MAP_ID_TO_EN.items()}
+
+    TIME_CATEGORIES_ID = ["Pagi", "Siang", "Sore", "Malam"]
+    TIME_CATEGORIES_EN = ["Morning", "Afternoon", "Evening", "Night"] # Assuming these map correctly
+    TIME_CATEGORY_MAP_ID_TO_EN = dict(zip(TIME_CATEGORIES_ID, TIME_CATEGORIES_EN))
+    TIME_CATEGORY_MAP_EN_TO_ID = dict(zip(TIME_CATEGORIES_EN, TIME_CATEGORIES_ID))
+
 
     # Dropdown menu utama
     menu = st.selectbox("Pilih Operasi", ["📄 Lihat Data", "➕ Tambah Data", "✏️ Update Data", "❌ Hapus Data"])
 
     # Fungsi Read
     if menu == "📄 Lihat Data":
-        def get_data():
-            response = supabase.table("sharing-bike").select("*").execute()
-            return response.data
-        st.subheader("📄 Data Pendaftar")
-        data = get_data()  # Fungsi ambil data dari Supabase
-        st.dataframe(data)
+
+        def get_dynamic_column_names():
+            try:
+                response = supabase.table("sharing-bike").select("*").limit(1).execute()
+                if response.data:
+                    return list(response.data[0].keys())
+                else:
+                    st.warning("Tidak bisa mengambil nama kolom secara dinamis karena tabel kosong. Menggunakan daftar kolom default.")
+                    # Pastikan daftar default ini sesuai dengan kolom Anda jika tabel bisa kosong
+                    return [
+                        "instant", "dteday", "season", "yr", "mnth", "hr", "holiday", "weekday",
+                        "workingday", "weathersit", "temp", "atemp", "hum", "windspeed",
+                        "casual", "registered", "cnt", "time_category"
+                    ]
+            except Exception as e:
+                st.error(f"Error mengambil nama kolom dinamis: {e}")
+                # Fallback jika terjadi error, bisa juga return daftar kolom yang di-hardcode
+                return ["instant"] # Minimal satu kolom agar tidak error di index
+
+        current_column_options = get_dynamic_column_names()
+        if not current_column_options:
+            st.error("Gagal memuat opsi kolom untuk pengurutan. Aplikasi tidak bisa melanjutkan.")
+            st.stop() # Hentikan jika tidak ada kolom sama sekali
+
+        # ---- PERUBAHAN 1: Modifikasi definisi fungsi get_data ----
+        def get_data(order_column=None, ascending=True, search_id=None, valid_columns=None): # Tambahkan valid_columns
+            """
+            Mengambil data dari tabel 'sharing-bike' dengan opsi urutan dan pencarian.
+            """
+            if valid_columns is None: # Pengaman jika valid_columns tidak dikirim
+                valid_columns = []
+
+            try:
+                query = supabase.table("sharing-bike").select("*")
+
+                if search_id is not None and search_id != "":
+                    try:
+                        search_id_int = int(search_id)
+                        query = query.eq("instant", search_id_int)
+                    except ValueError:
+                        st.warning("Instant (ID) untuk pencarian harus berupa angka.")
+                        return []
+
+                # Gunakan parameter 'valid_columns' untuk validasi
+                if order_column and order_column in valid_columns:
+                    use_desc = not ascending
+                    query = query.order(order_column, desc=use_desc)
+                elif order_column:
+                    st.warning(f"Kolom '{order_column}' tidak valid untuk pengurutan karena tidak ditemukan dalam daftar kolom yang valid.")
+
+                response = query.execute()
+                return response.data
+            except Exception as e:
+                st.error(f"Error mengambil data: {e}") # Pesan error spesifik dari exception
+                return []
+
+        # --- Kontrol untuk Pencarian dan Pengurutan ---
+        st.markdown("---")
+        st.markdown("##### ⚙️ Kontrol Tampilan Data")
+
+        search_instant_str = st.text_input("Cari berdasarkan Instant (ID):", key="search_id_main_page_v3")
+
+        sort_column = st.selectbox(
+            "Urutkan berdasarkan kolom:",
+            options=current_column_options,
+            index=current_column_options.index('instant') if 'instant' in current_column_options else 0,
+            key="sort_col_main_page_v3"
+        )
+
+        sort_order_selection = st.radio(
+            "Pilih urutan:",
+            options=["Ascending", "Descending"],
+            index=0,
+            key="sort_ord_main_page_v3",
+            horizontal=True
+        )
+        st.markdown("---")
+
+        ascending_bool_for_function = True if sort_order_selection == "Ascending" else False
+
+        # ---- PERUBAHAN 2: Saat memanggil get_data, kirimkan current_column_options ----
+        data_pendaftar = get_data(
+            order_column=sort_column,
+            ascending=ascending_bool_for_function,
+            search_id=search_instant_str,
+            valid_columns=current_column_options # Kirim daftar kolom yang valid
+        )
+
+        if data_pendaftar:
+            st.dataframe(data_pendaftar, height=600)
+            st.info(f"Menampilkan {len(data_pendaftar)} baris.")
+        elif search_instant_str and not data_pendaftar: # Jika ada kriteria pencarian tapi hasil kosong
+            st.warning(f"Tidak ada data ditemukan untuk Instant (ID): {search_instant_str}")
+        elif not data_pendaftar: # Jika tidak ada kriteria pencarian spesifik dan hasil tetap kosong
+            st.warning("Tidak ada data untuk ditampilkan.")
+        # Pesan "terjadi kesalahan saat mengambil data" akan muncul jika ada exception di get_data
 
     # Fungsi Create
     elif menu == "➕ Tambah Data":
