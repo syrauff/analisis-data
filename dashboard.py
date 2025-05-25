@@ -144,10 +144,10 @@ time_category_counts = categorize_time_of_day(main_df)
 
 st.header('Sharing Bike :bike:')
 
-tab1, tab2, tab3, tab4 = st.tabs(["Pertanyaan Bisnis", "Eksplorasi Tambahan", "Kumpulan   Data", "Olah Data"])
+tab1, tab2, tab3, tab4 = st.tabs(["Eksplorasi", "Eksplorasi Tambahan", "Kumpulan   Data", "Olah Data"])
 
 with tab1:
-    st.header("Pertanyaan Bisnis")
+    st.header("Hasil Eksplorasi")
     st.subheader('Pengguna terdaftar vs pengguna biasa per hari')
 
     col1, col2 = st.columns(2)
