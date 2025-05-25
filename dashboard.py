@@ -220,7 +220,7 @@ with tab1:
     st.pyplot(fig)
 
     
-    st.subheader('Total pengguna berdasarkan')
+    st.subheader('Total pengguna berdasarkan jam')
 
     col1, col2 = st.columns(2)
 
@@ -251,7 +251,7 @@ with tab1:
 
     with col1:
         total_users_by_weather = weather_counts_df['total_users'].sum()
-        st.metric("Total Users by Weather", value=total_users_by_weather)
+        st.metric("Total Pengguna berdasarkan Cuaca", value=total_users_by_weather)
 
     with col2:
         most_favorable_weather = weather_counts_df.sort_values(by="total_users", ascending=False).iloc[0]['weathersit']
@@ -259,61 +259,14 @@ with tab1:
 
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.barplot(x='weathersit', y='total_users', data=weather_counts_df, palette='cool', ax=ax)
-    ax.set_title("Total Users by Weather", fontsize=20)
+    ax.set_title("Total Pengguna berdasar cuaca", fontsize=20)
     ax.set_xlabel("Situasi cuaca", fontsize=15)
     ax.set_ylabel("Total pengguna", fontsize=15)
     st.pyplot(fig)
 
 with tab2:
     st.header("Optional Explore")
-    
-    st.subheader("Best Performance Based on RFM Parameters")
 
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        avg_recency = round(rfm_df.recency.mean(), 1)
-        st.metric("Average Recency (days)", value=avg_recency)
-
-    with col2:
-        avg_frequency = round(rfm_df.frequency.mean(), 2)
-        st.metric("Average Frequency", value=avg_frequency)
-
-    with col3:
-        avg_monetary = format_currency(rfm_df.monetary.mean(), "AUD", locale='es_CO') 
-        st.metric("Average Monetary", value=avg_monetary)
-
-
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(20, 10))
-    colors = ["#90CAF9"] * 5
-
-
-    sns.barplot(y="recency", x="weekday", data=rfm_df.sort_values(by="recency", ascending=False).head(5), palette=colors, ax=ax[0])
-    ax[0].set_ylabel(None)
-    ax[0].set_xlabel("Weekday", fontsize=15)
-    ax[0].set_title("By Recency (days)", loc="center", fontsize=20)
-    ax[0].tick_params(axis='y', labelsize=10)
-    ax[0].tick_params(axis='x', labelsize=10)
-
-
-    sns.barplot(y="frequency", x="weekday", data=rfm_df.sort_values(by="frequency", ascending=False).head(5), palette=colors, ax=ax[1])
-    ax[1].set_ylabel(None)
-    ax[1].set_xlabel("Weekday", fontsize=15)
-    ax[1].set_title("By Frequency", loc="center", fontsize=20)
-    ax[1].tick_params(axis='y', labelsize=10)
-    ax[1].tick_params(axis='x', labelsize=10)
-
-  
-    sns.barplot(y="monetary", x="weekday", data=rfm_df.sort_values(by="monetary", ascending=False).head(5), palette=colors, ax=ax[2])
-    ax[2].set_ylabel(None)
-    ax[2].set_xlabel("Weekday", fontsize=15)
-    ax[2].set_title("By Monetary", loc="center", fontsize=20)
-    ax[2].tick_params(axis='y', labelsize=10)
-    ax[2].tick_params(axis='x', labelsize=10)
-
-    st.pyplot(fig)
-
-  
     st.subheader('Hitung Pengguna berdasarkan waktu')
     col1, col2 = st.columns(2)
 
